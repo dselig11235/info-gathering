@@ -80,7 +80,11 @@ class Web(object):
         repeatOnError(self.clickOn, lambda x: True, '#findCompanies > div.search-result.general-display-none > div.column-right > div.result-table > table > tbody > tr > td.td-name.name > a')
 
         self.screenshot('Company Information Available on data.com.png')
-        self.driver.find_element_by_xpath('//a[contains(., "see all")]').click()
+        try:
+            self.driver.find_element_by_xpath('//a[contains(., "see all")]').click()
+        except NoSuchElementException:
+            #No active Contacts at this Company
+            return False
 
         self.screenshot('Employee Information Available on data.com.png')
 
