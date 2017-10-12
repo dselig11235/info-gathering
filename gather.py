@@ -115,7 +115,7 @@ class Web(object):
         self.driver.find_element_by_id('email-field').send_keys(creds['email'])
         self.driver.find_element_by_id('password-field').send_keys(creds['password'])
         print_status('logging in to hunter.io')
-        self.clickOn('#signin_form > div.board-box > button')
+        self.driver.find_element_by_xpath('//form[@id="signin_form"]/div[@class="board-box"]/button[contains(., "Log me in")]').click()
         self.setValue(self.driver.find_element_by_id('domain-field'), domain)
         self.clickOn('#search-btn')
         print_status('using domain ' + domain)
