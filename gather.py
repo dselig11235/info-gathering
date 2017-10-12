@@ -2,7 +2,7 @@
 
 from time import sleep
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, ElementNotVisibleException
 import os, re, imp
 from interactive import print_good, print_error, print_status, prompt
 from ConfigParser import ConfigParser, NoOptionError, NoSectionError
@@ -44,6 +44,39 @@ class Web(object):
             self.driver.execute_script('arguments[0].value = arguments[1]', element, value)
         else:
             self.driver.execute_script('arguments[0].setAttribute("value", arguments[1])', element, value)
+
+    def waitFor(self, css="body", xpath=None, timeout=10):
+        time = 0
+        while True:
+            try:
+                if xpath is not None:
+                    return self.driver.find_element_by_xpath(xpath)
+                else:
+                    return self.driver.find_element_by_css_selector(css)
+
+            except NoSuchElementException as e:
+                time += 1
+                if time > timeout:
+                    raise
+                else:
+                    sleep(1)
+
+    def tryClick(self, css="body", xpath=None, timeout=10):
+        time = 0
+        while True:
+            try:
+                if xpath is not None:
+                    return self.waitFor(xpath = xpath, timeout=timeout).click()
+                else:
+                    return self.waitFor(css = css, timeout=timeout).click()
+
+            except ElementNotVisibleException as e:
+                time += 1
+                if time > timeout:
+                    raise
+                else:
+                    sleep(1)
+
     def clickOn(self, s):
         self.driver.find_element_by_css_selector(s).click()
     def screenshot(self, filename):
@@ -77,13 +110,20 @@ class Web(object):
         print_status('using domain ' + domain)
         self.setValue(self.driver.find_element_by_id('homepageSBS'), domain)
         self.clickOn('#homepageSearchIcon')
-        repeatOnError(self.clickOn, lambda x: True, '#findCompanies > div.search-result.general-display-none > div.column-right > div.result-table > table > tbody > tr > td.td-name.name > a')
+        try:
+            self.tryClick('#findCompanies > div.search-result.general-display-none > div.column-right > div.result-table > table > tbody > tr > td.td-name.name > a')
+        except NoSuchElementException:
+            print_error('No company found with the domain %s on connect.data.com' % domain)
+            return False
+
+        #repeatOnError(self.clickOn, lambda x: True, '#findCompanies > div.search-result.general-display-none > div.column-right > div.result-table > table > tbody > tr > td.td-name.name > a')
 
         self.screenshot('Company Information Available on data.com.png')
         try:
             self.driver.find_element_by_xpath('//a[contains(., "see all")]').click()
         except NoSuchElementException:
             #No active Contacts at this Company
+            print_error('No contacts found in company on connect.data.com' % domain)
             return False
 
         self.screenshot('Employee Information Available on data.com.png')
